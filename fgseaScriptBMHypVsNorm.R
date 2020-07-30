@@ -25,8 +25,12 @@ workingDirectory <- paste(PrimaryDirectory, "workingDirectory", sep = "/")
 dir.create(workingDirectory)
 
 # load pathway
-pathway.HALLMARK <- gmtPathways(file.choose())
+hallmark.path <- paste(PrimaryDirectory, "gene_sets", "h.all.v7.1.symbols.gmt", sep = "/")
+pathway.HALLMARK <- gmtPathways(hallmark.path)
 head(pathway.HALLMARK)
+# gobp.path <- paste(PrimaryDirectory, "gene_sets", "c5.bp.v7.1.symbols.gmt", sep = "/")
+# pathway.GOBP <- gmtPathways(gobp.path)
+# head(pathway.GOBP)
 
 # generate custom pathways from 
 # 1- Immunity 2020, Beltra et al
@@ -144,6 +148,7 @@ customPathways$TtermVSTexprog1_UP <- TtermVSTexprog1_UP
 customPathways$TtermVSTexprog2_UP <- TtermVSTexprog2_UP
 customPathways$TtermVSTint_UP <- TtermVSTint_UP
 
+# concatenate pathways
 all.pathways <- c(pathway.HALLMARK, customPathways)
 
 setwd(workingDirectory)
@@ -169,21 +174,21 @@ save(ranks, file = "ranks.rds")
 fgseaRes <- fgsea(all.pathways, ranks, maxSize = 500, minSize = 15, eps = 0)
 plotEnrichment(all.pathways[["HALLMARK_HYPOXIA"]], ranks) + labs(title = "HALLMARK_HYPOXIA")
 head(fgseaRes)
-fgseaResSIG <- fgseaRes %>% dplyr::filter(padj < 0.05)
+fgseaResSIG <- fgseaRes %>% dplyr::filter(padj < 0.1)
 UP_sig <- fgseaResSIG %>%
   dplyr::filter(padj < 0.05) %>%
   dplyr::filter(NES >1)
-UP_sig
+UP_sig$pathway
 DOWN_sig <- fgseaResSIG %>%
   dplyr::filter(padj < 0.05) %>%
   dplyr::filter(NES < -1)
-DOWN_sig
+DOWN_sig$pathway
 
 topPathwaysUp <- fgseaRes[ES > 0][head(order(pval), n=10), pathway]
 topPathwaysDown <- fgseaRes[ES < 0][head(order(pval), n=10), pathway]
 topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
 
-svg(filename = "GSEAtable_HALLMARK_BM_HypVsNorm.svg", bg = "white")
+svg(filename = "GSEAtable_ALLPATHWAYS_BM_HypVsNorm.svg", bg = "white")
 plotGseaTable(all.pathways[topPathways], ranks, fgseaRes, 
               gseaParam=0.5)
 dev.off()
