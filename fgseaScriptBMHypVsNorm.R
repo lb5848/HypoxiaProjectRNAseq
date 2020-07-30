@@ -178,3 +178,12 @@ DOWN_sig <- fgseaResSIG %>%
   dplyr::filter(padj < 0.05) %>%
   dplyr::filter(NES < -1)
 DOWN_sig
+
+topPathwaysUp <- fgseaRes[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown <- fgseaRes[ES < 0][head(order(pval), n=10), pathway]
+topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
+
+svg(filename = "GSEAtable_HALLMARK_BM_HypVsNorm.svg", bg = "white")
+plotGseaTable(all.pathways[topPathways], ranks, fgseaRes, 
+              gseaParam=0.5)
+dev.off()
