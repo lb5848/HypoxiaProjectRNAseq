@@ -172,7 +172,7 @@ rev_rank <- rnk
 rev_rank$stat <- rev_rank$stat * (-1)
 ranks <- deframe(rev_rank)
 
-save(ranks, file = "ranks.rds")
+save(ranks, file = "BMHypvsNormranks.rds")
 
 fgseaRes <- fgsea(all.pathways, ranks, maxSize = 500, minSize = 15, eps = 0)
 plotEnrichment(all.pathways[["HALLMARK_HYPOXIA"]], ranks) + labs(title = "HALLMARK_HYPOXIA")
@@ -195,3 +195,43 @@ svg(filename = "GSEAtable_ALLPATHWAYS_BM_HypVsNorm.svg", bg = "white")
 plotGseaTable(all.pathways[topPathways], ranks, fgseaRes, 
               gseaParam=0.5)
 dev.off()
+
+# save file
+data.table::fwrite(fgseaRes, file = "BMHypvsNormEnrichment.txt", sep = "\t", sep2 = c("", " ", ""))
+
+# reactomePathways
+library(org.Hs.eg.db)
+
+ranksENTREZID <- ranks
+names(ranksENTREZID) <- mapIdsList(x = org.Hs.eg.db,
+                                   keys = names(ranks),
+                                   keytype = "SYMBOL",
+                                   column = "ENTREZID")
+reactome.pathways <- reactomePathways(names(ranksENTREZID))
+
+fgseaReactome <- fgsea(reactome.pathways, ranksENTREZID, maxSize = 500, minSize = 15, eps = 0)
+
+fgseaReactome <- fgseaReactome[, leadingEdge := mapIdsList(x = org.Hs.eg.db,
+                                                           keys = leadingEdge,
+                                                           keytype = "ENTREZID",
+                                                           column = "SYMBOL")]
+fgseaReactomeSIG <- fgseaReactome %>% dplyr::filter(padj < 0.05)
+Reactome_UP_sig <- fgseaReactomeSIG %>%
+  dplyr::filter(padj < 0.05) %>%
+  dplyr::filter(NES >1)
+Reactome_UP_sig$pathway
+Reactome_DOWN_sig <- fgseaReactomeSIG %>%
+  dplyr::filter(padj < 0.05) %>%
+  dplyr::filter(NES < -1)
+Reactome_DOWN_sig$pathway
+
+topPathwaysUp <- fgseaReactomeSIG[ES > 0][head(order(pval), n=10), pathway]
+topPathwaysDown <- fgseaReactomeSIG[ES < 0][head(order(pval), n=10), pathway]
+topPathways <- c(topPathwaysUp, rev(topPathwaysDown))
+
+svg(filename = "GSEAtable_Reactome_BMHypvsNorm.svg", bg = "white")
+plotGseaTable(reactome.pathways[topPathways], ranks, fgseaReactomeSIG, 
+              gseaParam=0.5)
+dev.off()
+
+data.table::fwrite(fgseaRes, file = "BMHypvsNormEnrichment.txt", sep = "\t", sep2 = c("", " ", ""))
